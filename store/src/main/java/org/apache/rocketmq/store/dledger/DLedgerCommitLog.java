@@ -36,6 +36,8 @@ import java.nio.ByteBuffer;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
+import java.util.stream.Collectors;
+
 import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.common.message.MessageDecoder;
 import org.apache.rocketmq.common.message.MessageExtBatch;
@@ -54,6 +56,8 @@ import org.apache.rocketmq.store.SelectMappedBufferResult;
 import org.apache.rocketmq.store.StoreStatsService;
 import org.apache.rocketmq.store.config.MessageStoreConfig;
 import org.apache.rocketmq.store.logfile.MappedFile;
+import org.apache.rocketmq.store.util.FileResource;
+import org.apache.rocketmq.store.util.MmapFileResource;
 import org.rocksdb.RocksDBException;
 
 /**
@@ -134,11 +138,17 @@ public class DLedgerCommitLog extends CommitLog {
     @Override
     public void start() {
         dLedgerServer.startup();
+        if (coldDataCheckService != null) {
+            coldDataCheckService.start();
+        }
     }
 
     @Override
     public void shutdown() {
         dLedgerServer.shutdown();
+        if (coldDataCheckService != null) {
+            coldDataCheckService.shutdown();
+        }
     }
 
     @Override
@@ -1131,5 +1141,26 @@ public class DLedgerCommitLog extends CommitLog {
 
     public long getDividedCommitlogOffset() {
         return dividedCommitlogOffset;
+    }
+
+
+    @Override
+    protected ColdDataCheckService createColdDataCheckService() {
+        return new DLedgerCommitLogColdDataCheckService();
+    }
+
+    class DLedgerCommitLogColdDataCheckService extends ColdDataCheckService {
+        @Override
+        protected FileResource findFileResource(long offset, boolean returnFirstOnNotFound) {
+            MmapFile mmapFile = dLedgerFileList.findMappedFileByOffset(offset, returnFirstOnNotFound);
+            return mmapFile != null ? new MmapFileResource(mmapFile) : null;
+        }
+
+        @Override
+        protected List<FileResource> getFileResources() {
+            return dLedgerFileList.getMappedFiles().stream()
+                    .map(MmapFileResource::new)
+                    .collect(Collectors.toList());
+        }
     }
 }

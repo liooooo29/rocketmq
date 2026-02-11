@@ -68,7 +68,9 @@ import org.apache.rocketmq.store.lock.AdaptiveBackOffSpinLockImpl;
 import org.apache.rocketmq.store.logfile.MappedFile;
 import org.apache.rocketmq.store.queue.ConsumeQueueInterface;
 import org.apache.rocketmq.store.queue.CqUnit;
+import org.apache.rocketmq.store.util.FileResource;
 import org.apache.rocketmq.store.util.LibC;
+import org.apache.rocketmq.store.util.MappedFileResource;
 import org.rocksdb.RocksDBException;
 
 /**
@@ -88,7 +90,7 @@ public class CommitLog implements Swappable {
     protected final DefaultMessageStore defaultMessageStore;
 
     private final FlushManager flushManager;
-    private final ColdDataCheckService coldDataCheckService;
+    protected final ColdDataCheckService coldDataCheckService;
 
     private final AppendMessageCallback appendMessageCallback;
     private final ThreadLocal<PutMessageThreadLocal> putMessageThreadLocal;
@@ -129,7 +131,7 @@ public class CommitLog implements Swappable {
         this.defaultMessageStore = messageStore;
 
         this.flushManager = new DefaultFlushManager();
-        this.coldDataCheckService = new ColdDataCheckService();
+        this.coldDataCheckService = createColdDataCheckService();
 
         this.appendMessageCallback = new DefaultAppendMessageCallback(defaultMessageStore.getMessageStoreConfig());
         putMessageThreadLocal = new ThreadLocal<PutMessageThreadLocal>() {
@@ -2366,6 +2368,10 @@ public class CommitLog implements Swappable {
         return !MixAll.isWindows() && !defaultMessageStore.getMessageStoreConfig().isDataReadAheadEnable();
     }
 
+    protected ColdDataCheckService createColdDataCheckService() {
+        return new ColdDataCheckService();
+    }
+
     public class ColdDataCheckService extends ServiceThread {
         private final SystemClock systemClock = new SystemClock();
         private final ConcurrentHashMap<String, byte[]> pageCacheMap = new ConcurrentHashMap<>();
@@ -2379,6 +2385,17 @@ public class CommitLog implements Swappable {
             }
             initPageSize();
             scanFilesInPageCache();
+        }
+
+        protected FileResource findFileResource(long offset, boolean returnFirstOnNotFound) {
+            MappedFile mappedFile = mappedFileQueue.findMappedFileByOffset(offset, returnFirstOnNotFound);
+            return mappedFile != null ? new MappedFileResource(mappedFile) : null;
+        }
+
+        protected List<FileResource> getFileResources() {
+            return mappedFileQueue.getMappedFiles().stream()
+                    .map(MappedFileResource::new)
+                    .collect(Collectors.toList());
         }
 
         @Override
@@ -2428,7 +2445,7 @@ public class CommitLog implements Swappable {
                 return false;
             }
 
-            MappedFile mappedFile = mappedFileQueue.findMappedFileByOffset(offset, offset == 0);
+            FileResource mappedFile = findFileResource(offset, offset == 0);
             if (null == mappedFile) {
                 return true;
             }
@@ -2448,8 +2465,9 @@ public class CommitLog implements Swappable {
             }
             try {
                 log.info("pageCacheMap key size: {}", pageCacheMap.size());
-                clearExpireMappedFile();
-                mappedFileQueue.getMappedFiles().forEach(mappedFile -> {
+                List<FileResource> mappedFiles = getFileResources();
+                clearExpireMappedFile(mappedFiles);
+                mappedFiles.forEach(mappedFile -> {
                     byte[] pageCacheTable = checkFileInPageCache(mappedFile);
                     if (sampleSteps > 1) {
                         pageCacheTable = sampling(pageCacheTable, sampleSteps);
@@ -2461,8 +2479,8 @@ public class CommitLog implements Swappable {
             }
         }
 
-        private void clearExpireMappedFile() {
-            Set<String> currentFileSet = mappedFileQueue.getMappedFiles().stream().map(MappedFile::getFileName).collect(Collectors.toSet());
+        private void clearExpireMappedFile(List<FileResource> mappedFiles) {
+            Set<String> currentFileSet = mappedFiles.stream().map(FileResource::getFileName).collect(Collectors.toSet());
             pageCacheMap.forEach((key, value) -> {
                 if (!currentFileSet.contains(key)) {
                     pageCacheMap.remove(key);
@@ -2479,7 +2497,7 @@ public class CommitLog implements Swappable {
             return sample;
         }
 
-        private byte[] checkFileInPageCache(MappedFile mappedFile) {
+        private byte[] checkFileInPageCache(FileResource mappedFile) {
             long fileSize = mappedFile.getFileSize();
             final long address = PlatformDependent.directBufferAddress(mappedFile.getMappedByteBuffer());
             int pageNums = (int) (fileSize + this.pageSize - 1) / this.pageSize;
