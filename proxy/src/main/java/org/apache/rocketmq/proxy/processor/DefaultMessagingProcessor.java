@@ -142,7 +142,6 @@ public class DefaultMessagingProcessor extends AbstractStartAndShutdown implemen
         this.appendStartAndShutdown(this.receiptHandleProcessor);
         this.appendShutdown(this.producerProcessorExecutor::shutdown);
         this.appendShutdown(this.consumerProcessorExecutor::shutdown);
-        this.appendStartAndShutdown(this.receiptHandleProcessor);
     }
 
     @Override
@@ -234,16 +233,9 @@ public class DefaultMessagingProcessor extends AbstractStartAndShutdown implemen
 
     @Override
     public CompletableFuture<AckResult> changeInvisibleTime(ProxyContext ctx, ReceiptHandle handle, String messageId,
-        String groupName, String topicName, long invisibleTime, long timeoutMillis) {
+        String groupName, String topicName, long invisibleTime, String liteTopic, long timeoutMillis, boolean suspend) {
         return this.consumerProcessor.changeInvisibleTime(ctx, handle, messageId, groupName, topicName,
-            invisibleTime, null, timeoutMillis);
-    }
-
-    @Override
-    public CompletableFuture<AckResult> changeInvisibleTime(ProxyContext ctx, ReceiptHandle handle, String messageId,
-        String groupName, String topicName, long invisibleTime, String liteTopic, long timeoutMillis) {
-        return this.consumerProcessor.changeInvisibleTime(ctx, handle, messageId, groupName, topicName,
-            invisibleTime, liteTopic, timeoutMillis);
+            invisibleTime, liteTopic, timeoutMillis, suspend);
     }
 
     @Override

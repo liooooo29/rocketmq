@@ -116,6 +116,9 @@ public class MessageStoreConfig {
     private int timerRocksDBRollRangeHours = 2;
     private boolean timerRecallToTimeWheelEnable = true;
     private boolean timerRecallToTimelineEnable = true;
+    private int timerReputServiceCorePoolSize = 6;
+    private int timerReputServiceMaxPoolSize = 6;
+    private int timerReputServiceQueueCapacity = 10000;
 
     private boolean transRocksDBEnable = false;
     private boolean transWriteOriginTransHalfEnable = true;
@@ -128,6 +131,8 @@ public class MessageStoreConfig {
     // default, defaultRocksDB
     @ImportantField
     private String storeType = StoreType.DEFAULT.getStoreType();
+
+    private boolean iteratorWhenUseRocksdbConsumeQueue = true;
 
     // ConsumeQueue file size,default is 30W
     private int mappedFileSizeConsumeQueue = 300000 * ConsumeQueue.CQ_STORE_UNIT_SIZE;
@@ -507,9 +512,8 @@ public class MessageStoreConfig {
     private long rocksdbWalFileRollingThreshold = SizeUnit.GB;
 
     /**
-     * Note: For correctness, this switch should be enabled only if the previous startup was configured with SYNC_FLUSH
-     * and the storeType was defaultRocksDB. This switch is not recommended for normal use cases (include master-slave
-     * or controller mode).
+     * Note: For correctness, this switch should be enabled only if the previous startup was configured with SYNC_FLUSH.
+     * This switch is not recommended for normal use cases (include master-slave or controller mode).
      */
     private boolean enableAcceleratedRecovery = false;
 
@@ -662,6 +666,14 @@ public class MessageStoreConfig {
 
     public void setStoreType(String storeType) {
         this.storeType = storeType;
+    }
+
+    public boolean isIteratorWhenUseRocksdbConsumeQueue() {
+        return iteratorWhenUseRocksdbConsumeQueue;
+    }
+
+    public void setIteratorWhenUseRocksdbConsumeQueue(boolean iteratorWhenUseRocksdbConsumeQueue) {
+        this.iteratorWhenUseRocksdbConsumeQueue = iteratorWhenUseRocksdbConsumeQueue;
     }
 
     public int getMappedFileSizeConsumeQueue() {
@@ -2225,6 +2237,30 @@ public class MessageStoreConfig {
 
     public void setTimerRecallToTimelineEnable(boolean timerRecallToTimelineEnable) {
         this.timerRecallToTimelineEnable = timerRecallToTimelineEnable;
+    }
+
+    public void setTimerReputServiceCorePoolSize(int timerReputServiceCorePoolSize) {
+        this.timerReputServiceCorePoolSize = timerReputServiceCorePoolSize;
+    }
+
+    public int getTimerReputServiceCorePoolSize() {
+        return timerReputServiceCorePoolSize;
+    }
+
+    public void setTimerReputServiceMaxPoolSize(int timerReputServiceMaxPoolSize) {
+        this.timerReputServiceMaxPoolSize = timerReputServiceMaxPoolSize;
+    }
+
+    public int getTimerReputServiceMaxPoolSize() {
+        return timerReputServiceMaxPoolSize;
+    }
+
+    public void setTimerReputServiceQueueCapacity(int timerReputServiceQueueCapacity) {
+        this.timerReputServiceQueueCapacity = timerReputServiceQueueCapacity;
+    }
+
+    public int getTimerReputServiceQueueCapacity() {
+        return timerReputServiceQueueCapacity;
     }
 
     public int getTimerRocksDBRollIntervalHours() {

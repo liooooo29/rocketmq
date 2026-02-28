@@ -14,21 +14,25 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.rocketmq.proxy.processor;
 
-import org.apache.rocketmq.common.message.MessageExt;
-import org.apache.rocketmq.proxy.common.ProxyContext;
-import org.apache.rocketmq.remoting.protocol.heartbeat.SubscriptionData;
+package org.apache.rocketmq.store.lock;
 
-public interface PopMessageResultFilter {
+import org.junit.Test;
 
-    enum FilterResult {
-        TO_DLQ,
-        NO_MATCH,
-        MATCH,
-        TO_RETURN
+import java.util.Collection;
+
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+
+public class AdaptiveBackOffSpinLockImplTest {
+
+    @Test
+    public void testGetLocks() {
+        AdaptiveBackOffSpinLockImpl lockImpl = new AdaptiveBackOffSpinLockImpl();
+        Collection<AdaptiveBackOffSpinLock> locks = lockImpl.getLocks();
+        assertEquals(2, locks.size());
+        for (AdaptiveBackOffSpinLock lock : locks) {
+            assertNotNull(lock);
+        }
     }
-
-    FilterResult filterMessage(ProxyContext ctx, String consumerGroup, SubscriptionData subscriptionData,
-        MessageExt messageExt);
 }

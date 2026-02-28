@@ -16,6 +16,7 @@
  */
 package org.apache.rocketmq.common;
 
+import java.util.concurrent.TimeUnit;
 import org.apache.rocketmq.common.annotation.ImportantField;
 import org.apache.rocketmq.common.config.ConfigManagerVersion;
 import org.apache.rocketmq.common.constant.PermName;
@@ -23,8 +24,6 @@ import org.apache.rocketmq.common.message.MessageRequestMode;
 import org.apache.rocketmq.common.metrics.MetricsExporterType;
 import org.apache.rocketmq.common.topic.TopicValidator;
 import org.apache.rocketmq.common.utils.NetworkUtil;
-
-import java.util.concurrent.TimeUnit;
 
 public class BrokerConfig extends BrokerIdentity {
 
@@ -256,6 +255,9 @@ public class BrokerConfig extends BrokerIdentity {
     private boolean useSeparateRetryQueue = false;
     private boolean realTimeNotifyConsumerChange = true;
 
+    private boolean useMessageFilterForNotification = true;
+    private int maxMessageFilterNumForNotification = 64;
+
     private boolean litePullMessageEnable = true;
 
     // The period to sync broker member group from namesrv, default value is 1 second
@@ -297,6 +299,12 @@ public class BrokerConfig extends BrokerIdentity {
     private long transactionCheckInterval = 30 * 1000;
 
     private long transactionMetricFlushInterval = 10 * 1000;
+
+    private int transactionCheckRocksdbCoreThreads = 2;
+
+    private int transactionCheckRocksdbMaxThreads = 5;
+
+    private int transactionCheckRocksdbQueueCapacity = 2000;
 
     /**
      * transaction batch op message
@@ -2106,6 +2114,30 @@ public class BrokerConfig extends BrokerIdentity {
         this.transactionMetricFlushInterval = transactionMetricFlushInterval;
     }
 
+    public void setTransactionCheckRocksdbCoreThreads(int transactionCheckRocksdbCoreThreads) {
+        this.transactionCheckRocksdbCoreThreads = transactionCheckRocksdbCoreThreads;
+    }
+
+    public int getTransactionCheckRocksdbCoreThreads() {
+        return transactionCheckRocksdbCoreThreads;
+    }
+
+    public int getTransactionCheckRocksdbMaxThreads() {
+        return transactionCheckRocksdbMaxThreads;
+    }
+
+    public void setTransactionCheckRocksdbMaxThreads(int transactionCheckRocksdbMaxThreads) {
+        this.transactionCheckRocksdbMaxThreads = transactionCheckRocksdbMaxThreads;
+    }
+
+    public int getTransactionCheckRocksdbQueueCapacity() {
+        return transactionCheckRocksdbQueueCapacity;
+    }
+
+    public void setTransactionCheckRocksdbQueueCapacity(int transactionCheckRocksdbQueueCapacity) {
+        this.transactionCheckRocksdbQueueCapacity = transactionCheckRocksdbQueueCapacity;
+    }
+
     public long getPopInflightMessageThreshold() {
         return popInflightMessageThreshold;
     }
@@ -2376,5 +2408,21 @@ public class BrokerConfig extends BrokerIdentity {
 
     public void setLiteLagLatencyTopK(int liteLagLatencyTopK) {
         this.liteLagLatencyTopK = liteLagLatencyTopK;
+    }
+
+    public boolean isUseMessageFilterForNotification() {
+        return useMessageFilterForNotification;
+    }
+
+    public void setUseMessageFilterForNotification(boolean useMessageFilterForNotification) {
+        this.useMessageFilterForNotification = useMessageFilterForNotification;
+    }
+
+    public int getMaxMessageFilterNumForNotification() {
+        return maxMessageFilterNumForNotification;
+    }
+
+    public void setMaxMessageFilterNumForNotification(int maxMessageFilterNumForNotification) {
+        this.maxMessageFilterNumForNotification = maxMessageFilterNumForNotification;
     }
 }
